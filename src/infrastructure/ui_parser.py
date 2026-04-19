@@ -1,5 +1,6 @@
 import xml.etree.ElementTree as ET
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
 
 class AndroidUIParser:
     """
@@ -24,37 +25,50 @@ class AndroidUIParser:
             element_id = 0
 
             # Iterate through all nodes in the XML tree
-            for node in root.iter('node'):
+            for node in root.iter("node"):
                 attrib = node.attrib
 
                 # Skip invisible or empty elements to keep context clean
-                bounds = attrib.get('bounds', '[0,0][0,0]')
-                if bounds == '[0,0][0,0]' or bounds == '[0,0][0,0][0,0][0,0]':
+                bounds = attrib.get("bounds", "[0,0][0,0]")
+                if bounds == "[0,0][0,0]" or bounds == "[0,0][0,0][0,0][0,0]":
                     continue
 
-                text = attrib.get('text', '')
-                content_desc = attrib.get('content-desc', '')
-                is_clickable = attrib.get('clickable', 'false') == 'true'
-                is_scrollable = attrib.get('scrollable', 'false') == 'true'
-                is_checkable = attrib.get('checkable', 'false') == 'true'
+                text = attrib.get("text", "")
+                content_desc = attrib.get("content-desc", "")
+                is_clickable = attrib.get("clickable", "false") == "true"
+                is_scrollable = attrib.get("scrollable", "false") == "true"
+                is_checkable = attrib.get("checkable", "false") == "true"
 
                 # We only care about nodes that have text, descriptions, or can be interacted with
                 if text or content_desc or is_clickable or is_scrollable or is_checkable:
                     # Clean the bounds format from "[x1,y1][x2,y2]"
-                    clean_bounds = bounds.replace('][', ',').replace('[', '').replace(']', '').split(',')
-                    
+                    clean_bounds = (
+                        bounds.replace("][", ",")
+                        .replace("[", "")
+                        .replace("]", "")
+                        .split(",")
+                    )
+
                     element_data = {
                         "id": element_id,
-                        "class": attrib.get('class', '').split('.')[-1], # E.g., 'Button' instead of 'android.widget.Button'
+                        # E.g., 'Button' instead of 'android.widget.Button'
+                        "class": attrib.get("class", "").split(".")[-1],
                         "text": text if text else None,
                         "description": content_desc if content_desc else None,
                         "clickable": is_clickable,
-                        "bounds": [int(c) for c in clean_bounds] if len(clean_bounds) == 4 else bounds
+                        "bounds": (
+                            [int(c) for c in clean_bounds]
+                            if len(clean_bounds) == 4
+                            else bounds
+                        )
                     }
-                    
+
                     # Remove None values to make the JSON even smaller
-                    element_data = {k: v for k, v in element_data.items() if v is not None and v is not False}
-                    
+                    element_data = {
+                        k: v for k, v in element_data.items()
+                        if v is not None and v is not False
+                    }
+
                     elements.append(element_data)
                     element_id += 1
 

@@ -1,14 +1,16 @@
 import asyncio
-from mcp.server.models import InitializationOptions
+
 import mcp.types as types
 from mcp.server import NotificationOptions, Server
+from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
 
-from src.tools import android_tools
 from src.infrastructure import adb_manager
+from src.tools import android_tools
 
 # Create the MCP Server instance
 server = Server("droid-mcp")
+
 
 @server.list_tools()
 async def handle_list_tools() -> list[types.Tool]:
@@ -25,6 +27,7 @@ async def handle_list_tools() -> list[types.Tool]:
         for tool in android_tools
     ]
 
+
 @server.call_tool()
 async def handle_call_tool(
     name: str, arguments: dict | None
@@ -35,7 +38,7 @@ async def handle_call_tool(
     """
     # Find the tool in our registry
     tool = next((t for t in android_tools if t.name == name), None)
-    
+
     if not tool:
         raise ValueError(f"Tool not found: {name}")
 
@@ -49,10 +52,10 @@ async def handle_call_tool(
     # Format the response back to the MCP standard
     return [
         types.TextContent(
-            type="text",
-            text=f"{result.message}\nData: {result.data if result.data else 'None'}"
+            type="text", text=f"{result.message}\nData: {result.data if result.data else 'None'}"
         )
     ]
+
 
 async def main():
     """
@@ -72,6 +75,7 @@ async def main():
                 ),
             ),
         )
+
 
 if __name__ == "__main__":
     asyncio.run(main())

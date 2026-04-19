@@ -1,7 +1,9 @@
-from typing import Dict, Any
+from typing import Any, Dict
+
 from src.core.base_tool import BaseAndroidTool
 from src.core.models import ActionResult
 from src.infrastructure import adb_manager
+
 
 class TapScreenTool(BaseAndroidTool):
     """
@@ -27,15 +29,15 @@ class TapScreenTool(BaseAndroidTool):
             "type": "object",
             "properties": {
                 "x": {"type": "integer", "description": "The X coordinate to tap"},
-                "y": {"type": "integer", "description": "The Y coordinate to tap"}
+                "y": {"type": "integer", "description": "The Y coordinate to tap"},
             },
-            "required": ["x", "y"]
+            "required": ["x", "y"],
         }
 
     async def run(self, **kwargs) -> ActionResult:
         x = kwargs.get("x")
         y = kwargs.get("y")
-        
+
         if x is None or y is None:
             return ActionResult(success=False, message="Missing x or y coordinates.")
 
@@ -45,13 +47,11 @@ class TapScreenTool(BaseAndroidTool):
 
             # Execute the ADB input tap command
             await adb_manager.execute_shell(f"input tap {x} {y}")
-            
-            return ActionResult(
-                success=True,
-                message=f"Successfully tapped screen at ({x}, {y})."
-            )
+
+            return ActionResult(success=True, message=f"Successfully tapped screen at ({x}, {y}).")
         except Exception as e:
             return ActionResult(success=False, message=f"Failed to tap: {str(e)}")
+
 
 class PressButtonTool(BaseAndroidTool):
     """
@@ -74,20 +74,20 @@ class PressButtonTool(BaseAndroidTool):
                 "button": {
                     "type": "string",
                     "enum": ["home", "back", "enter"],
-                    "description": "The button to press"
+                    "description": "The button to press",
                 }
             },
-            "required": ["button"]
+            "required": ["button"],
         }
 
     async def run(self, **kwargs) -> ActionResult:
         button = kwargs.get("button")
-        
+
         # ADB keyevent mapping
         key_map = {
-            "home": "3",   # KEYCODE_HOME
-            "back": "4",   # KEYCODE_BACK
-            "enter": "66"  # KEYCODE_ENTER
+            "home": "3",  # KEYCODE_HOME
+            "back": "4",  # KEYCODE_BACK
+            "enter": "66",  # KEYCODE_ENTER
         }
 
         keycode = key_map.get(button)
