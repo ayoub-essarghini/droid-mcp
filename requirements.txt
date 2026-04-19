@@ -1,0 +1,13 @@
+
+# main AI protocol
+mcp==1.2.0
+
+# Data validation & models
+pydantic>=2.6.0
+
+# Communication with android
+pure-python-adb>=0.3.0.dev0
+
+# --- Dev Tools (to make sure writing clean code) ---
+ruff>=0.3.0
+mypy>=1.9.0
