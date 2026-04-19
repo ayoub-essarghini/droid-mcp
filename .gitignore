@@ -34,3 +34,5 @@ venv/
 
 # MCP / Logs
 *.log
+
+test_internal.py

@@ -1,7 +1,8 @@
 from .device_info import GetDeviceInfoTool
+from .read_screen import ReadScreenTool
 
-# Architect Note: We expose a list of tool instances here 
-# so the Server can iterate through them and register them automatically.
+# List of all available tools
 android_tools = [
-    GetDeviceInfoTool()
+    GetDeviceInfoTool(),
+    ReadScreenTool()
 ]
