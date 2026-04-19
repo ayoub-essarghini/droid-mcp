@@ -1,8 +1,10 @@
 from .device_info import GetDeviceInfoTool
 from .read_screen import ReadScreenTool
+from .device_actions import TapScreenTool, PressButtonTool
 
-# List of all available tools
 android_tools = [
     GetDeviceInfoTool(),
-    ReadScreenTool()
+    ReadScreenTool(),
+    TapScreenTool(),
+    PressButtonTool()
 ]
