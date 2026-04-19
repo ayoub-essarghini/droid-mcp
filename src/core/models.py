@@ -1,6 +1,8 @@
-from pydantic import BaseModel, Field
-from typing import Any, Dict, Optional
 from enum import Enum
+from typing import Any, Dict, Optional
+
+from pydantic import BaseModel, Field
+
 
 class DeviceStatus(str, Enum):
     """
@@ -19,7 +21,7 @@ class ActionResult(BaseModel):
     success: bool = Field(..., description="Indicates if the action was executed successfully")
     message: str = Field(..., description="Human-readable description of the result or error")
     data: Optional[Dict[str, Any]] = Field(
-        default=None, 
+        default=None,
         description="Structured data returned by the tool (e.g., UI tree, battery info)"
     )
 
@@ -29,6 +31,6 @@ class ActionRequest(BaseModel):
     """
     action_name: str = Field(..., description="The name of the tool to be invoked")
     params: Dict[str, Any] = Field(
-        default_factory=dict, 
+        default_factory=dict,
         description="Key-value pairs required by the specific tool"
     )
