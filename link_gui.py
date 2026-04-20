@@ -1,9 +1,10 @@
-import tkinter as tk
-from tkinter import messagebox
 import json
 import os
 import sys
+import tkinter as tk
 from pathlib import Path
+from tkinter import messagebox
+
 
 class DroidMCPInstaller:
     def __init__(self, root):
@@ -13,7 +14,7 @@ class DroidMCPInstaller:
         self.root.eval('tk::PlaceWindow . center')
 
         self.label = tk.Label(
-            root, 
+            root,
             text="🤖 Droid MCP\n\n1-Click Install for VS Code (Cline).",
             font=("Arial", 12),
             pady=20
@@ -21,8 +22,8 @@ class DroidMCPInstaller:
         self.label.pack()
 
         self.btn = tk.Button(
-            root, 
-            text="🔗 Link to Cline", 
+            root,
+            text="🔗 Link to Cline",
             command=self.link_mcp,
             font=("Arial", 11, "bold"),
             bg="#007ACC",
@@ -42,7 +43,7 @@ class DroidMCPInstaller:
     def link_mcp(self):
         # 1. Capture the EXACT absolute paths automatically
         project_path = str(Path(__file__).parent.absolute())
-        current_python_exe = sys.executable  
+        current_python_exe = sys.executable
         config_path = self.get_cline_config_path()
 
         if not config_path:
@@ -81,7 +82,7 @@ class DroidMCPInstaller:
                 json.dump(data, f, indent=4)
 
             messagebox.showinfo(
-                "Success! 🎉", 
+                "Success! 🎉",
                 "Droid MCP linked successfully!\nNo manual config needed. Just restart VS Code."
             )
             self.root.destroy()
