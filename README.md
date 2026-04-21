@@ -20,9 +20,9 @@ This server is designed to work seamlessly with local LLMs (like Ollama) via MCP
 
 ### ⚠️ Prerequisites for macOS Users
 If you are on a Mac and use Homebrew to manage Python, `tkinter` (required for the 1-Click UI) is not installed by default. Run this first:
-\`\`\`bash
+```bash
 brew install python-tk@3.11
-\`\`\`
+```
 *(Adjust the version number if you are using a different Python version).*
 
 ### 🚀 1-Click Auto-Link to VS Code (Cline)
@@ -30,9 +30,9 @@ Forget manual JSON configurations and path issues. Run the built-in GUI to autom
 
 1. Activate your virtual environment (if you use one).
 2. Run the linker:
-\`\`\`bash
+```bash
 python link_gui.py
-\`\`\`
+```
 3. Click **"Link to Cline"**.
 4. **Restart VS Code.** You will now see `droid-mcp` with a green indicator in your Cline MCP Servers list.
 
