@@ -2,7 +2,6 @@
 import json
 import os
 import shutil
-import subprocess
 import sys
 import tkinter as tk
 from pathlib import Path
@@ -380,59 +379,65 @@ class DroidMCPInstaller:
         except Exception as e:
             messagebox.showerror("Error", f"Failed to configure {app_name}:\n{e}")
 
+    def get_project_root(self):
+        if getattr(sys, "frozen", False):
+            if sys.platform == "darwin" and ".app/Contents/MacOS" in sys.executable:
+                return str(Path(sys.executable).parents[3])
+            return str(Path(sys.executable).parent)
+        return str(Path(__file__).parent.absolute())
+
+    def get_python_cmd(self):
+        project_root = self.get_project_root()
+        for candidate in [
+            Path(project_root) / "venv" / "bin" / "python3",
+            Path(project_root) / "venv" / "bin" / "python",
+        ]:
+            if candidate.exists():
+                return str(candidate)
+        return shutil.which("python3") or shutil.which("python")
+
     def link_claude_code(self):
-        claude_cli = shutil.which("claude")
-        if not claude_cli:
+        claude_json = Path.home() / ".claude.json"
+        if not claude_json.exists():
             messagebox.showerror(
                 "Claude Code Not Found",
-                "Could not find the 'claude' CLI in your PATH.\n\n"
-                "Install Claude Code first:\nhttps://claude.ai/code",
+                "~/.claude.json not found.\n\nInstall Claude Code first:\nhttps://claude.ai/code",
             )
             return
 
-        server_exe_path = self.get_server_exe_path()
-
-        if not os.path.exists(server_exe_path):
-            messagebox.showerror(
-                "Missing Server Executable",
-                f"Could not find the server executable at:\n{server_exe_path}\n\n"
-                f"Ensure '{os.path.basename(server_exe_path)}' is in the same folder "
-                "as this installer.",
-            )
+        python_cmd = self.get_python_cmd()
+        if not python_cmd:
+            messagebox.showerror("Python Not Found", "Could not find a Python interpreter.")
             return
+
+        project_root = self.get_project_root()
+        mcp_entry = {
+            "type": "stdio",
+            "command": python_cmd,
+            "args": ["-m", "src.server.mcp_server"],
+            "env": {
+                "PYTHONUNBUFFERED": "1",
+                "PYTHONPATH": project_root,
+            },
+        }
 
         try:
-            result = subprocess.run(
-                [
-                    claude_cli,
-                    "mcp",
-                    "add",
-                    "droid-mcp",
-                    "-e",
-                    "PYTHONUNBUFFERED=1",
-                    "--",
-                    server_exe_path,
-                ],
-                capture_output=True,
-                text=True,
-                timeout=15,
-            )
+            with open(claude_json, encoding="utf-8") as f:
+                data = json.load(f)
 
-            if result.returncode == 0:
-                messagebox.showinfo(
-                    "Linked Successfully",
-                    "Droid MCP linked to Claude Code.\n\nRestart Claude Code to apply changes.",
-                )
-            else:
-                err = result.stderr.strip() or result.stdout.strip()
-                messagebox.showerror(
-                    "Link Failed",
-                    f"claude mcp add failed:\n\n{err}",
-                )
-        except subprocess.TimeoutExpired:
-            messagebox.showerror("Timeout", "claude CLI timed out.")
+            data.setdefault("mcpServers", {})
+            data["mcpServers"]["droid-mcp"] = mcp_entry
+
+            with open(claude_json, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+
+            messagebox.showinfo(
+                "Linked Successfully",
+                "Droid MCP linked to Claude Code (user scope).\n\n"
+                "Restart Claude Code to apply changes.",
+            )
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to run claude CLI:\n{e}")
+            messagebox.showerror("Error", f"Failed to write ~/.claude.json:\n{e}")
 
 
 if __name__ == "__main__":
