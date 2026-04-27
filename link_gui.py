@@ -1,6 +1,8 @@
 # MIT License — Copyright (c) 2024 Ayoub ES SARGHINI
 import json
 import os
+import shutil
+import subprocess
 import sys
 import tkinter as tk
 from pathlib import Path
@@ -283,11 +285,11 @@ class DroidMCPInstaller:
 
         claude_btn = CanvasButton(
             btn_outer,
-            text="  Copy Claude Code CLI Command",
+            text="  Link to Claude Code",
             icon_photo=self.claude_photo,
             bg_color="#B45309",
             hover_color="#D97706",
-            command=self.copy_claude_code_command,
+            command=self.link_claude_code,
             width=btn_width,
             height=52,
         )
@@ -378,20 +380,59 @@ class DroidMCPInstaller:
         except Exception as e:
             messagebox.showerror("Error", f"Failed to configure {app_name}:\n{e}")
 
-    def copy_claude_code_command(self):
-        cli_command = f'claude mcp add droid-mcp "{self.get_server_exe_path()}"'
+    def link_claude_code(self):
+        claude_cli = shutil.which("claude")
+        if not claude_cli:
+            messagebox.showerror(
+                "Claude Code Not Found",
+                "Could not find the 'claude' CLI in your PATH.\n\n"
+                "Install Claude Code first:\nhttps://claude.ai/code",
+            )
+            return
 
-        self.root.clipboard_clear()
-        self.root.clipboard_append(cli_command)
-        self.root.update()
+        server_exe_path = self.get_server_exe_path()
 
-        messagebox.showinfo(
-            "Copied to Clipboard",
-            f"Claude Code setup command copied.\n\n"
-            f"1. Open terminal\n"
-            f"2. Paste and run the command\n\n"
-            f"Command:\n{cli_command}",
-        )
+        if not os.path.exists(server_exe_path):
+            messagebox.showerror(
+                "Missing Server Executable",
+                f"Could not find the server executable at:\n{server_exe_path}\n\n"
+                f"Ensure '{os.path.basename(server_exe_path)}' is in the same folder "
+                "as this installer.",
+            )
+            return
+
+        try:
+            result = subprocess.run(
+                [
+                    claude_cli,
+                    "mcp",
+                    "add",
+                    "droid-mcp",
+                    "-e",
+                    "PYTHONUNBUFFERED=1",
+                    "--",
+                    server_exe_path,
+                ],
+                capture_output=True,
+                text=True,
+                timeout=15,
+            )
+
+            if result.returncode == 0:
+                messagebox.showinfo(
+                    "Linked Successfully",
+                    "Droid MCP linked to Claude Code.\n\nRestart Claude Code to apply changes.",
+                )
+            else:
+                err = result.stderr.strip() or result.stdout.strip()
+                messagebox.showerror(
+                    "Link Failed",
+                    f"claude mcp add failed:\n\n{err}",
+                )
+        except subprocess.TimeoutExpired:
+            messagebox.showerror("Timeout", "claude CLI timed out.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to run claude CLI:\n{e}")
 
 
 if __name__ == "__main__":
