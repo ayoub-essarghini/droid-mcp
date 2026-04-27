@@ -360,7 +360,10 @@ class ExecuteShellTool(BaseAndroidTool):
         return {
             "type": "object",
             "properties": {
-                "command": {"type": "string", "description": "The raw shell command (without 'adb shell')"},
+                "command": {
+                    "type": "string",
+                    "description": "The raw shell command (without 'adb shell')",
+                },
             },
             "required": ["command"],
         }
@@ -396,7 +399,8 @@ class WaitTool(BaseAndroidTool):
         return (
             "Waits for a specified number of seconds. "
             "CRITICAL: Always use this tool after opening an app, clicking a link, "
-            "or doing anything that requires the screen to load or animate, before taking the next action."
+            "or doing anything that requires the screen to load or animate, "
+            "before taking the next action."
         )
 
     @property
@@ -416,7 +420,10 @@ class WaitTool(BaseAndroidTool):
         seconds = kwargs.get("seconds", 2)
         try:
             await asyncio.sleep(seconds)
-            return ActionResult(success=True, message=f"Waited for {seconds} seconds. The UI should now be settled.")
+            return ActionResult(
+                success=True,
+                message=f"Waited for {seconds} seconds. The UI should now be settled.",
+            )
         except Exception as e:
             return ActionResult(success=False, message=f"Wait interrupted: {str(e)}")
 
@@ -463,8 +470,12 @@ class ManageNetworkTool(BaseAndroidTool):
             if action == "status":
                 # Check internet by pinging Google DNS with 1 packet
                 result = await adb_manager.execute_shell("ping -c 1 8.8.8.8")
-                # ping command returns different formats, but "1 packets transmitted" or "ttl=" is a good sign
-                if result and ("1 packets transmitted, 1 received" in result or "ttl=" in result.lower()):
+                # ping returns different formats; "1 packets transmitted" or "ttl=" signals success
+                connected = result and (
+                    "1 packets transmitted, 1 received" in result
+                    or "ttl=" in result.lower()
+                )
+                if connected:
                     return ActionResult(success=True, message="Internet is connected and working.")
                 else:
                     return ActionResult(
@@ -501,14 +512,15 @@ class GetDeviceStateTool(BaseAndroidTool):
             "Returns the current state of the device including: "
             "1. Is the screen ON or OFF? "
             "2. What is the current foreground application (package name)? "
-            "CRITICAL: Always run this first to check if your target app is ALREADY open before launching it."
+            "CRITICAL: Always run this first to check if your target app is ALREADY open "
+            "before launching it."
         )
 
     @property
     def arguments_schema(self) -> Dict[str, Any]:
         return {
             "type": "object",
-            "properties": {}, 
+            "properties": {},
         }
 
     async def run(self, **kwargs) -> ActionResult:
@@ -517,13 +529,15 @@ class GetDeviceStateTool(BaseAndroidTool):
                 adb_manager.connect()
 
             #  Check if screen is ON or OFF
-            power_state = await adb_manager.execute_shell("dumpsys power | grep 'Display Power: state='")
+            power_state = await adb_manager.execute_shell(
+                "dumpsys power | grep 'Display Power: state='"
+            )
             is_screen_on = "ON" in (power_state or "").upper()
 
             # Check the current foreground application
             focus = await adb_manager.execute_shell("dumpsys window | grep mCurrentFocus")
-            
-            # Extract package name (e.g., from "mCurrentFocus=Window{... u0 com.android.chrome/...}")
+
+            # Extract package name from "mCurrentFocus=Window{... u0 com.android.chrome/...}"
             current_app = "Unknown"
             if focus and "mCurrentFocus=Window" in focus:
                 try:
@@ -545,3 +559,78 @@ class GetDeviceStateTool(BaseAndroidTool):
             return ActionResult(success=True, message=state_report)
         except Exception as e:
             return ActionResult(success=False, message=f"Failed to get device state: {str(e)}")
+
+class GetCrashLogsTool(BaseAndroidTool):
+    """
+    Retrieves ONLY the error and crash logs for a specific application to save tokens.
+    """
+
+    @property
+    def name(self) -> str:
+        return "get_crash_logs"
+
+    @property
+    def description(self) -> str:
+        return (
+            "Fetches the recent ERROR and FATAL logs (Logcat) for a specific app package. "
+            "Use this immediately after an app crashes or fails to perform an action "
+            "to find the stack trace. "
+            "Optionally, use action='clear' BEFORE testing to ensure you only get fresh logs."
+        )
+
+    @property
+    def arguments_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "package_name": {"type": "string", "description": "e.g., com.example.myapp"},
+                "action": {
+                    "type": "string",
+                    "enum": ["read", "clear"],
+                    "description": (
+                        "'clear' wipes old logs before a test. 'read' gets current errors."
+                    )
+                },
+            },
+            "required": ["package_name", "action"],
+        }
+
+    async def run(self, **kwargs) -> ActionResult:
+        package = kwargs.get("package_name")
+        action = kwargs.get("action")
+
+        try:
+            if not adb_manager.device:
+                adb_manager.connect()
+
+            if action == "clear":
+                await adb_manager.execute_shell("logcat -c")
+                return ActionResult(success=True, message="Logs cleared. Ready for clean test.")
+
+            # get PID of app, then filter logcat by that PID and Error level
+            pid_result = await adb_manager.execute_shell(f"pidof {package}")
+            pid = pid_result.strip() if pid_result else None
+
+            if not pid:
+                return ActionResult(
+                    success=False,
+                    message=(
+                        f"App {package} is not running or crashed completely. "
+                        "Try fetching 'AndroidRuntime:E' globally."
+                    )
+                )
+
+            # Fetch only ERROR level logs for this specific process (Extremely Token Friendly)
+            logs = await adb_manager.execute_shell(f"logcat -d --pid={pid} *:E")
+
+            if not logs or len(logs.strip()) == 0:
+                return ActionResult(
+                    success=True,
+                    message="No errors found in logs. The app seems stable.",
+                )
+
+            # Truncate to last 2000 chars to save tokens just in case it's a massive loop
+            return ActionResult(success=True, message=f"Crash Logs:\n{logs[-2000:]}")
+
+        except Exception as e:
+            return ActionResult(success=False, message=f"Logcat failed: {str(e)}")

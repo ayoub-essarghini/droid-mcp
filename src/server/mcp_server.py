@@ -56,6 +56,64 @@ async def handle_call_tool(
         )
     ]
 
+@server.list_prompts()
+async def handle_list_prompts() -> list[types.Prompt]:
+    return [
+        types.Prompt(
+            name="auto_pilot",
+            description="The Ultimate Zero-Effort Developer Agent. Builds and tests autonomously.",
+            arguments=[
+                types.PromptArgument(
+                    name="app_idea",
+                    description="Describe the app you want to build in a short sentence.",
+                    required=True
+                )
+            ]
+        )
+    ]
+
+# This is the master prompt that guides the AI Agent to autonomously build and test.
+@server.get_prompt()
+async def handle_get_prompt(name: str, arguments: dict[str, str] | None) -> types.GetPromptResult:
+    if name == "auto_pilot":
+        app_idea = (arguments or {}).get("app_idea", "A simple test app")
+        master_prompt = f"""You are a Senior Android Architect building an app autonomously.
+The user wants to watch your development journey, including how you handle bugs.
+
+YOUR MISSION: {app_idea}
+
+YOUR WORKFLOW:
+1. CODE FAST: Build the first version quickly. Don't over-engineer it.
+2. DEPLOY & TEST: Deploy to the emulator and interact with it using your Droid MCP tools.
+3. THE "THINKING ALOUD" PROTOCOL (CRITICAL):
+   - Whenever you run a command, read the screen, or check logs, you MUST narrate your
+     thought process to the user.
+   - Example: "I just clicked the 'Play' button. Let me check the crash logs to see if
+     the state crashed..."
+   - Example: "Ah! I see a NullPointerException in the logcat. I forgot to initialize
+     the ViewModel. Let me open MainActivity.kt and fix it."
+4. FIX & RE-TEST: If you find an error, explain what caused it, use your file editing
+   tools to patch it, and rebuild the app.
+5. PUSH THE LIMITS: Once the basic app works, purposefully rotate the screen or
+   spam-click buttons (using tap_screen quickly) to try and break your own app.
+   If it breaks, fix it!
+
+Do not ask the user for help. You are a genius developer—prove it by debugging your own code!"""
+
+        return types.GetPromptResult(
+            description="Autonomous Developer Prompt",
+            messages=[
+                types.PromptMessage(
+                    role="user",
+                    content=types.TextContent(
+                        type="text",
+                        text=master_prompt
+                    )
+                )
+            ]
+        )
+
+    raise ValueError(f"Unknown prompt: {name}")
 
 async def main():
     """
@@ -75,7 +133,6 @@ async def main():
                 ),
             ),
         )
-
 
 if __name__ == "__main__":
     asyncio.run(main())
