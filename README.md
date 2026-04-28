@@ -1,6 +1,6 @@
 # Droid MCP Server 🤖📱
 
-![Droid MCP Banner](assets/droid-mcp-banner.png)
+<img src="assets/droid-mcp-banner.png" width="2048" height="1169" alt="Droid MCP Banner">
 
 A Headless Android Model Context Protocol (MCP) Server. 
 Turns any Android device or emulator into an AI-native platform, allowing LLMs to interact directly with the OS.
